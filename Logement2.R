@@ -36,24 +36,24 @@ logement <- read_xlsx("C:/Users/jeremie.dupont/Desktop/Stage/Logement/BDD stage.
     `Secteur` %in% c("Lille-Villeneuve d'Ascq", "Campus Pont de Bois", "Campus Cité Scientifique") ~ "Lille Est",
     `Secteur` %in% c("Campus Moulins-Ronchin", "Campus Santé") ~ "Lille Centre",
     TRUE ~ `Secteur`
-    )
+  )
   ) %>% 
   mutate(
     `Sous-phase (Libellé)` = case_when(
-    `Sous-phase (Libellé)` == "2024 sous-phase 1" ~ "Tour 1",
-    `Sous-phase (Libellé)` == "2024 sous-phase 2" ~ "Tour 2",
-    `Sous-phase (Libellé)` == "2024 sous-phase 3" ~ "Tour 3",
-    `Sous-phase (Libellé)` == "2024 sous-phase 4" ~ "Tour 4",
-    `Sous-phase (Libellé)` == "Sous-Phase 1" ~ "Tour 1",
-    `Sous-phase (Libellé)` == "Sous-Phase 2" ~ "Tour 2",
-    `Sous-phase (Libellé)` == "Sous-Phase 3" ~ "Tour 3",
-    `Sous-phase (Libellé)` == "Sous-Phase 4" ~ "Tour 4",
-    `Sous-phase (Libellé)` == "Tour Unique 2021" ~ "Tour 1",
+      `Sous-phase (Libellé)` == "2024 sous-phase 1" ~ "Tour 1",
+      `Sous-phase (Libellé)` == "2024 sous-phase 2" ~ "Tour 2",
+      `Sous-phase (Libellé)` == "2024 sous-phase 3" ~ "Tour 3",
+      `Sous-phase (Libellé)` == "2024 sous-phase 4" ~ "Tour 4",
+      `Sous-phase (Libellé)` == "Sous-Phase 1" ~ "Tour 1",
+      `Sous-phase (Libellé)` == "Sous-Phase 2" ~ "Tour 2",
+      `Sous-phase (Libellé)` == "Sous-Phase 3" ~ "Tour 3",
+      `Sous-phase (Libellé)` == "Sous-Phase 4" ~ "Tour 4",
+      `Sous-phase (Libellé)` == "Tour Unique 2021" ~ "Tour 1",
       TRUE ~ `Sous-phase (Libellé)` 
     ) 
   ) %>% 
   mutate(`Places Tour 1` = 0
-         ) %>% 
+  ) %>% 
   mutate(`Places Tour 2` = 0
   ) %>% 
   mutate(`Places Tour 3` = 0
@@ -63,27 +63,29 @@ logement <- read_xlsx("C:/Users/jeremie.dupont/Desktop/Stage/Logement/BDD stage.
   mutate(`Places Total` = 0
   ) %>% 
   mutate(`Places phase complémentaire` = 0) %>% 
-    mutate(
-      Latitude = case_when(
-        Secteur == "Arras" ~ 50.2910,
-        Secteur == "Béthune" ~ 50.5300,
-        Secteur == "Boulogne-sur-Mer" ~ 50.7264,
-        Secteur == "Calais" ~ 50.9513,
-        Secteur == "Cambrai" ~ 50.1760,
-        Secteur == "Lens-Liévin" ~ 50.4320,
-        Secteur == "Lille Centre" ~ 50.6292,
-        Secteur == "Lille Est" ~ 50.6329,
-        Secteur == "Longuenesse - Saint Omer" ~ 50.7515,
-        Secteur == "Maubeuge" ~ 50.2782,
-        Secteur == "Roubaix - Tourcoing" ~ 50.6916,
-        Secteur == "Valenciennes" ~ 50.3498,
-        TRUE ~ NA_real_
-      )) %>%
+  mutate(
+    Latitude = case_when(
+      Secteur == "Arras" ~ 50.2910,
+      Secteur == "Béthune" ~ 50.5300,
+      Secteur == "Boulogne-sur-Mer" ~ 50.7264,
+      Secteur == "Calais" ~ 50.9513,
+      Secteur == "Cambrai" ~ 50.1760,
+      Secteur == "Dunkerque" ~ 51.0344,
+      Secteur == "Lens-Liévin" ~ 50.4320,
+      Secteur == "Lille Centre" ~ 50.6292,
+      Secteur == "Lille Est" ~ 50.6329,
+      Secteur == "Longuenesse - Saint Omer" ~ 50.7515,
+      Secteur == "Maubeuge" ~ 50.2782,
+      Secteur == "Roubaix - Tourcoing" ~ 50.6916,
+      Secteur == "Valenciennes" ~ 50.3498,
+      TRUE ~ NA_real_
+    )) %>%
   mutate(Longitude = case_when(
     Secteur == "Arras" ~ 2.7775,
     Secteur == "Béthune" ~ 2.6320,
     Secteur == "Boulogne-sur-Mer" ~ 1.6133,
     Secteur == "Calais" ~ 1.8587,
+    Secteur == "Dunkerque" ~ 2.3764,
     Secteur == "Cambrai" ~ 3.2342,
     Secteur == "Lens-Liévin" ~ 2.8332,
     Secteur == "Lille Centre" ~ 3.0573,
@@ -95,7 +97,7 @@ logement <- read_xlsx("C:/Users/jeremie.dupont/Desktop/Stage/Logement/BDD stage.
     TRUE ~ NA_real_
   )
   )
-  
+
 # Fonction modification----
 standardiser_residence <- function(data, colonne_residence = "Résidence") {
   data %>%
@@ -146,34 +148,34 @@ safe_max <- function(x) {
 }
 
 traiter_logement_par_annee <- function(logement, logement_annee, annee_gestion) {
+  # Détecter le nombre de tours dans logement_annee
+  tours <- grep("^RESERVATIONS[1-4]$", names(logement_annee), value = TRUE)
+  
   logement %>%
     filter(`Année de gestion` == annee_gestion) %>%
-    left_join(
-      logement_annee %>% select(`Résidence`, `RESERVATIONS1`, `RESERVATIONS2`, `RESERVATIONS3`, `RESERVATIONS4`, `PhaseC`),
-      by = "Résidence"
-    ) %>%
+    left_join(logement_annee %>% select(c("Résidence", tours, "PhaseC")), by = "Résidence") %>%
     mutate(
-      `Places Tour 1` = ifelse(`Sous-phase (Libellé)` == "Tour 1" & !is.na(RESERVATIONS1), RESERVATIONS1, `Places Tour 1`),
-      `Places Tour 2` = ifelse(`Sous-phase (Libellé)` == "Tour 2" & !is.na(RESERVATIONS2), RESERVATIONS2, `Places Tour 2`),
-      `Places Tour 3` = ifelse(`Sous-phase (Libellé)` == "Tour 3" & !is.na(RESERVATIONS3), RESERVATIONS3, `Places Tour 3`),
-      `Places Tour 4` = ifelse(`Sous-phase (Libellé)` == "Tour 4" & !is.na(RESERVATIONS4), RESERVATIONS4, `Places Tour 4`),
-      `Places phase complémentaire` = `PhaseC`
+      `Places Tour 1` = if ("RESERVATIONS1" %in% tours) ifelse(`Sous-phase (Libellé)` == "Tour 1" & !is.na(RESERVATIONS1), RESERVATIONS1, `Places Tour 1`) else `Places Tour 1`,
+      `Places Tour 2` = if ("RESERVATIONS2" %in% tours) ifelse(`Sous-phase (Libellé)` == "Tour 2" & !is.na(RESERVATIONS2), RESERVATIONS2, `Places Tour 2`) else `Places Tour 2`,
+      `Places Tour 3` = if ("RESERVATIONS3" %in% tours) ifelse(`Sous-phase (Libellé)` == "Tour 3" & !is.na(RESERVATIONS3), RESERVATIONS3, `Places Tour 3`) else `Places Tour 3`,
+      `Places Tour 4` = if ("RESERVATIONS4" %in% tours) ifelse(`Sous-phase (Libellé)` == "Tour 4" & !is.na(RESERVATIONS4), RESERVATIONS4, `Places Tour 4`) else `Places Tour 4`,
+      `Places phase complémentaire` = PhaseC
     ) %>%
     group_by(`Résidence`) %>%
     mutate(
       `Places Total` = {
         vals <- c(
-          safe_max(`Places Tour 1`),
-          safe_max(`Places Tour 2`),
-          safe_max(`Places Tour 3`),
-          safe_max(`Places Tour 4`),
+          if ("RESERVATIONS1" %in% tours) safe_max(`Places Tour 1`) else 0,
+          if ("RESERVATIONS2" %in% tours) safe_max(`Places Tour 2`) else 0,
+          if ("RESERVATIONS3" %in% tours) safe_max(`Places Tour 3`) else 0,
+          if ("RESERVATIONS4" %in% tours) safe_max(`Places Tour 4`) else 0,
           safe_max(`Places phase complémentaire`)
         )
         if (all(is.na(vals))) NA_real_ else sum(vals, na.rm = TRUE)
       }
     ) %>%
     ungroup() %>%
-    select(-`RESERVATIONS1`, -`RESERVATIONS2`, -`RESERVATIONS3`, -`RESERVATIONS4`, -`PhaseC`)
+    select(-all_of(tours), -PhaseC)
 }
 
 
@@ -332,16 +334,16 @@ print(diff_logement2024)
 #2025-----
 logement2025 <- read_xlsx("C:/Users/jeremie.dupont/Desktop/Stage/Logement/RESULTATS TOUR LOGEMENT 2025-2026 – Jérémie.xlsx")
 
-logement2024 <- logement2024 %>%
+logement2025 <- logement2025 %>%
   fill(`Résidence`, .direction = "down") 
 
-logement2025 <- logement2024 %>%
+logement2025 <- logement2025 %>%
   filter(!is.na(`Résidence`)) %>% 
   filter(`Résidence` != "Résidence Jean Zay", `Résidence` != "TOTAL",`Résidence` != "Robespierre") %>%
   group_by(`Résidence`) %>%
   summarise(across(where(is.numeric), \(x) sum(x, na.rm = TRUE)))
 
-logement2025 <- standardiser_residence(logement2024)
+logement2025 <- standardiser_residence(logement2025)
 
 # Trier les noms des résidences de chaque dataframe
 logement2025_sorted <- sort(unique(logement2025$Résidence))
@@ -379,7 +381,7 @@ logement <- logement %>%
   select(-`TOUR 21-22`,-`PhaseC`) %>%
   bind_rows(filter(logement, `Année de gestion` != 2021))
 
-logement <- traiter_toutes_les_annees(logement, logement_par_annee, c(2022,2023,2024))
+logement <- traiter_toutes_les_annees(logement, logement_par_annee, c(2022,2023,2024,2025))
 
 logementdispo <- logementdispo %>%
   left_join(
@@ -424,7 +426,7 @@ logement <- bind_rows(logement, manquantes)
 ########    Enregistrement Fichier.      ########
 ################################################
 
-output_path <- "C:/Users/jeremie.dupont/Desktop/Stage/Logement/BDD Suivi des demandes logement1.xlsx"
+output_path <- "C:/Users/jeremie.dupont/Desktop/Stage/Logement/BDD Suivi des demandes logement2.xlsx"
 
 write_xlsx(logement, output_path)
 
